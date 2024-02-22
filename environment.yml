@@ -1,0 +1,21 @@
+name: aipy
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.5
+  - numpy
+  - pandas
+  - jupyter
+  - jupyterlab
+  - keras
+  - lightgbm
+  - matplotlib
+  - seaborn
+  - scipy
+  - joblib
+  - pip
+  - pyjanitor
+  - scikit-learn
+  - tensorflow
