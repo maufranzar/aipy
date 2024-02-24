@@ -200,4 +200,4 @@ pyrightconfig.json
 data/external/*
 data/raw/*
 reports/img/*
-/vscode/*
+.vscode/*
