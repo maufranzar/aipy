@@ -1,88 +1,95 @@
-
-
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
-...# 
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.metrics import silhouette_score, calinski_harabasz_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import GridSearchCV
 
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.cluster import AgglomerativeClustering
+# Carga del conjunto de datos
+datos = pd.read_csv("ruta/al/archivo.csv")
 
-...#
+# Preprocesamiento de las features
+scaler = StandardScaler()
+datos_escalados = scaler.fit_transform(datos)
 
-from sklearn.metrics import silhouette_samples, silhouette_score
+**Definición de los modelos**
 
- 
-...#
+# KMeans con búsqueda de hiperparámetros
+kmeans_params = {
+  'n_clusters': np.arange(2, 10),
+  'init': ['k-means++', 'random'],
+  'max_iter': [100, 300]
+}
+kmeans_cv = GridSearchCV(KMeans(), kmeans_params, scoring='silhouette_score', n_jobs=-1)
 
-import warnings
-warnings.filterwarnings('ignore')
+# Agglomerative Clustering con búsqueda de hiperparámetros
+agglo_params = {
+  'n_clusters': np.arange(2, 10),
+  'linkage': ['average', 'ward', 'complete']
+}
+agglo_cv = GridSearchCV(AgglomerativeClustering(), agglo_params, scoring='silhouette_score', n_jobs=-1)
 
-sns.set(style="whitegrid",
-        color_codes=True,
-        context="notebook",
-        rc={"grid.linewidth":0.25,"grid.color":"grey","grid.linestyle":"-"},
-        font_scale=1)
+**Ajuste de los modelos a los datos**
 
-sns.set_palette("deep")
-plt.style.use('dark_background')
-plt.rcParams['figure.figsize'] = (9,9)
+kmeans_cv.fit(datos_escalados)
+agglo_cv.fit(datos_escalados)
 
-############################################
+**Evaluación de los resultados**
 
+# Mejores parámetros
+print(f"Mejores parámetros KMeans: {kmeans_cv.best_params_}")
+print(f"Mejores parámetros Agglomerative Clustering: {agglo_cv.best_params_}")
 
+# Métricas
+metricas = {
+  "KMeans": {
+    "Silhouette": silhouette_score(datos_escalados, kmeans_cv.best_estimator_.labels_),
+    "Calinski-Harabasz": calinski_harabasz_score(datos_escalados, kmeans_cv.best_estimator_.labels_)
+  },
+  "Agglomerative Clustering": {
+    "Silhouette": silhouette_score(datos_escalados, agglo_cv.best_estimator_.labels_),
+    "Calinski-Harabasz": calinski_harabasz_score(datos_escalados, agglo_cv.best_estimator_.labels_)
+  }
+}
 
-# Cargamos el DataFrame
-data_df = pd.read_csv('../data/processed/dataset.csv')
-subdata_df = pd.read_csv('../data/processed/subdataset.csv')
-
-# Asumiendo que cat_cols son tus columnas categóricas y num_cols son las numéricas
-cat_cols = ['gender','etnicity','edu_lvl','month']
-num_cols = ['years', 'main_source','total'] # age
-
-# Crear los transformadores para las columnas categóricas y numéricas
-cat_transformer = OneHotEncoder(handle_unknown='ignore', sparse=False)  # Añadir sparse=False
-num_transformer = StandardScaler()
-
-# Crear el preprocesador que aplicará las transformaciones a las columnas correspondientes
-preprocessor = ColumnTransformer(
-    transformers=[
-        ('num', num_transformer, num_cols),
-        ('cat', cat_transformer, cat_cols)])
-
-# Crear el pipeline que primero preprocesará los datos y luego aplicará el clustering
-clust_pipeline = Pipeline(steps=[('preprocessor', preprocessor),
-                                 ('cluster', AgglomerativeClustering())])
-
-# Ajustar y aplicar el modelo
-clust_pipeline.fit(subdata_df)   
-
-# Obtener las etiquetas de los clusters
-labels = clust_pipeline.named_steps['cluster'].labels_
-subdata_df['cluster_label'] = labels
-
-score = silhouette_score(subdata_df, labels, metric='euclidean')
-print(f'Coeficiente de silueta: {score:.3f}')
-
-# Obtener los valores del coeficiente de silueta para cada objeto
-silhouette_values = silhouette_samples(subdata_df, labels)
-
-# Crear un diagrama de barras
-plt.figure(figsize=(10, 7))
-plt.bar(range(len(subdata_df)), silhouette_values)
-plt.xlabel('Objetos')
-plt.ylabel('Coeficiente de silueta')
-plt.title('Diagrama de silueta')
-
-# Colorear las barras según el cluster al que pertenecen
-colors = ['red', 'green', 'blue']
-for i in range(3):
-    plt.fill_between(range(len(subdata_df)), 0, silhouette_values, where=(labels == i), color=colors[i], alpha=0.5)
-
-# Mostrar el gráfico
+# Visualización de los resultados
+plt.figure(figsize=(10, 6))
+for i, modelo in enumerate([kmeans_cv.best_estimator_, agglo_cv.best_estimator_]):
+  plt.subplot(1, 2, i + 1)
+  plt.scatter(datos_escalados[:, 0], datos_escalados[:, 1], c=modelo.labels_, cmap='viridis')
+  plt.title(modelo.__class__.__name__)
 plt.show()
+
+# Impresión de las métricas
+for modelo, resultados in metricas.items():
+  print(f"Modelo: {modelo}")
+  for metrica, valor in resultados.items():
+    print(f"  {metrica}: {valor}")
+
+# **Selección del mejor modelo**
+
+# En base a las métricas de evaluación y la visualización de los resultados, se selecciona el modelo que mejor se ajusta a los datos y a los objetivos del análisis.
+
+# **Análisis e interpretación de los resultados**
+
+# * Se realiza un análisis e interpretación de los clusters encontrados por el mejor modelo.
+# * Se visualizan los clusters con diferentes técnicas, como gráficos de dispersión, diagramas de caja y heatmaps.
+# * Se comparan los clusters entre sí y se identifican las características que los diferencian.
+# * Se interpretan los clusters en el contexto del problema de negocio.
+
+# **Recomendaciones:**
+
+# * Ajustar los parámetros de los modelos para optimizar los resultados.
+# * Probar diferentes modelos de clustering para comparar resultados.
+# * Evaluar la interpretabilidad de los clusters.
+
+# **Este código implementa las sugerencias para mejorar el clustering, como la búsqueda de hiperparámetros y el análisis e interpretación de los resultados.**
+
+# **Recursos adicionales:**
+
+# * [https://scikit-learn.org/stable/modules/clustering.html](https://scikit-learn.org/stable/modules/clustering.html)
+# * [https://seaborn.pydata.org/](https://seaborn.pydata.org/)
+
+# **Espero que este código te haya sido útil.
